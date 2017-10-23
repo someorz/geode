@@ -39,17 +39,17 @@ import org.awaitility.Awaitility;
 public class JDBCAsyncWriterIntegrationTest {
 
   private Cache cache;
-  
+
   private Connection conn;
-  
+
   private Statement stmt;
 
   JDBCAsyncWriter jdbcWriter;
 
   private String dbName="DerbyDB";
-  
+
   private String regionTableName = "employees";
-  
+
   @Before
   public void setup() throws Exception {
     try {
@@ -87,7 +87,7 @@ public class JDBCAsyncWriterIntegrationTest {
     }
     stmt.execute("Drop table " + regionTableName);
     stmt.close();
-    
+
     if (conn != null) {
       conn.close();
     }
@@ -108,13 +108,13 @@ public class JDBCAsyncWriterIntegrationTest {
   @Test
   public void jdbcAsyncWriterCanWriteToDatabase() throws Exception {
     Region employees = createRegionWithJDBCAsyncWriter("employees");
-    
+
     employees.put("1", "Emp1");
     employees.put("2", "Emp2");
 
     validateTableRowCount(2);
   }
-  
+
   private Region createRegionWithJDBCAsyncWriter(String regionName) {
     jdbcWriter = new JDBCAsyncWriter();
     cache.createAsyncEventQueueFactory().setBatchSize(1)
@@ -122,9 +122,9 @@ public class JDBCAsyncWriterIntegrationTest {
 
     RegionFactory rf = cache.createRegionFactory(RegionShortcut.REPLICATE);
     rf.addAsyncEventQueueId("jdbcAsyncQueue");
-    return rf.create(regionName); 
+    return rf.create(regionName);
   }
-  
+
   private void validateTableRowCount(int expected) throws Exception {
     Awaitility.await().atMost(1, TimeUnit.SECONDS).until(() -> {
       int size = 0;
@@ -140,5 +140,5 @@ public class JDBCAsyncWriterIntegrationTest {
       assertThat(size).isEqualTo(expected);
     });
   }
- 
+
 }

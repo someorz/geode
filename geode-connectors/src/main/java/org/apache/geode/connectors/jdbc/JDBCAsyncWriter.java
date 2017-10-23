@@ -22,7 +22,7 @@ import org.apache.geode.cache.asyncqueue.AsyncEventListener;
 
 /*
  * This class provides write behind cache semantics for a JDBC data source using AsyncEventListener.
- * 
+ *
  * @since Geode 1.4
  */
 public class JDBCAsyncWriter implements AsyncEventListener {
