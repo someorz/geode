@@ -97,7 +97,6 @@ public class JDBCAsyncWriterIntegrationTest {
   public void canInstallJDBCAsyncWriterOnRegion() {
     Region employees = createRegionWithJDBCAsyncWriter("employees");
     employees.put("1", "Emp1");
-    try {Thread.sleep(100);} catch (Exception ex){}
     employees.put("2", "Emp2");
 
     Awaitility.await().atMost(30, TimeUnit.SECONDS)
@@ -111,6 +110,9 @@ public class JDBCAsyncWriterIntegrationTest {
 
     employees.put("1", "Emp1");
     employees.put("2", "Emp2");
+
+    Awaitility.await().atMost(30, TimeUnit.SECONDS)
+    .until(() -> assertThat(jdbcWriter.getSuccessfulEvents()).isEqualTo(2));
 
     validateTableRowCount(2);
   }
@@ -126,19 +128,10 @@ public class JDBCAsyncWriterIntegrationTest {
   }
 
   private void validateTableRowCount(int expected) throws Exception {
-    Awaitility.await().atMost(1, TimeUnit.SECONDS).until(() -> {
-      int size = 0;
-      try {
-        ResultSet rs = stmt.executeQuery("select count(*) from " + regionTableName);
-        while (rs.next()) {
-          size = rs.getInt(1);
-        }
-      } catch (Exception ex) {
-        // Need to fix this.
-        System.out.println("Exception while getting the table row count");
-      }
-      assertThat(size).isEqualTo(expected);
-    });
+    ResultSet rs = stmt.executeQuery("select count(*) from " + regionTableName);
+    rs.next();
+    int size = rs.getInt(1);
+    assertThat(size).isEqualTo(expected);
   }
 
 }

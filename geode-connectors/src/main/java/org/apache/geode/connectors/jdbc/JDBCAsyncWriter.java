@@ -40,6 +40,7 @@ public class JDBCAsyncWriter implements AsyncEventListener {
   @Override
   public boolean processEvents(List<AsyncEvent> events) {
     totalEvents += events.size();
+    successfulEvents += events.size();
     return true;
   }
 
@@ -52,7 +53,7 @@ public class JDBCAsyncWriter implements AsyncEventListener {
     return this.totalEvents;
   }
 
-  public long getsuccessfulEvents() {
+  public long getSuccessfulEvents() {
     return this.successfulEvents;
   }
 }
