@@ -1405,6 +1405,10 @@ public class AcceptorImpl implements Acceptor, Runnable, CommBufferPool {
     return this.clientServerCnxCount.get();
   }
 
+  public boolean isNotifyBySubscription() {
+    return notifyBySubscription;
+  }
+
   protected void handleNewClientConnection(final Socket socket,
       final ServerConnectionFactory serverConnectionFactory) throws IOException {
     // Read the first byte. If this socket is being used for 'client to server'
@@ -1427,14 +1431,15 @@ public class AcceptorImpl implements Acceptor, Runnable, CommBufferPool {
       throw new EOFException();
     }
 
-    if (communicationMode.isSubscriptionFeed()) {
-      boolean primary = communicationMode == CommunicationMode.PrimaryServerToClient;
-      logger.debug(":Bridge server: Initializing {} server-to-client communication socket: {}",
-          primary ? "primary" : "secondary", socket);
-      AcceptorImpl.this.clientNotifier.registerClient(socket, primary, this.acceptorId,
-          this.notifyBySubscription);
-      return;
-    }
+    // GEODE-3637
+    // if (communicationMode.isSubscriptionFeed()) {
+    // boolean primary = communicationMode == CommunicationMode.PrimaryServerToClient;
+    // logger.debug(":Bridge server: Initializing {} server-to-client communication socket: {}",
+    // primary ? "primary" : "secondary", socket);
+    // AcceptorImpl.this.clientNotifier.registerClient(socket, primary, this.acceptorId,
+    // this.notifyBySubscription);
+    // return;
+    // }
 
     logger.debug("Bridge server: Initializing {} communication socket: {}", communicationMode,
         socket);
