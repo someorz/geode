@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.geode.cache.Operation;
 import org.apache.geode.cache.Region;
@@ -76,7 +78,7 @@ public class JDBCManager {
     String tableName = getTableName(region);
     List<ColumnValue> columnList = getColumnToValueList(tableName, key, value, operation);
     String query = getQueryString(tableName, columnList, operation);
-    Statement statement = getQueryStatement(columnList, query);
+    PreparedStatement statement = getQueryStatement(columnList, query);
     try {
       statement.execute(query);
     } catch (SQLException e) {
@@ -126,13 +128,24 @@ public class JDBCManager {
     columnValues.append(")");
     return columnNames.append(columnValues).toString();
   }
-
-  private Statement getQueryStatement(List<ColumnValue> columnList, String query) {
-
-    // TODO Auto-generated method stub
-    return null;
+  
+  private Connection getConnection() {
+    return null; // NYI
   }
 
+  private final ConcurrentMap<String, PreparedStatement> preparedStatementCache = new ConcurrentHashMap<>();
+  
+  private PreparedStatement getQueryStatement(List<ColumnValue> columnList, String query) {
+    return preparedStatementCache.computeIfAbsent(query, k -> {
+      Connection con = getConnection();
+      try {
+        return con.prepareStatement(k);
+      } catch (SQLException e) {
+        throw new IllegalStateException("TODO handle exception", e);
+      }
+    });
+  }
+  
   private List<ColumnValue> getColumnToValueList(String tableName, Object key, PdxInstance value,
       Operation operation) {
     Set<String> keyColumnNames = getKeyColumnNames(tableName);
