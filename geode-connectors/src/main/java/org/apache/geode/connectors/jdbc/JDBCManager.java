@@ -44,12 +44,6 @@ public class JDBCManager {
     this.config = config;
   }
 
-  private void establishConnection() {
-    // Class.forName(this.config.getDriver());
-    // conn = DriverManager.getConnection(this.config.getURL());
-    // stmt = conn.createStatement();
-  }
-
   public class ColumnValue {
 
     final private boolean isKey;
@@ -144,7 +138,34 @@ public class JDBCManager {
   }
 
   private Connection getConnection() {
-    return null; // NYI
+    Connection result = this.conn;
+    try {
+      if (result != null && !result.isClosed()) {
+        return result;
+      }
+    }
+    catch (SQLException ignore) {
+      // If isClosed throws fall through and connect again
+    }
+
+    if (result == null) {
+      try {
+        Class.forName(this.config.getDriver());
+      }
+      catch (ClassNotFoundException e) {
+        // TODO: consider a different exception
+        throw new IllegalStateException("Driver class " + this.config.getDriver() + " not found", e);
+      }
+    }
+    try {
+      result = DriverManager.getConnection(this.config.getURL());
+    }
+    catch (SQLException e) {
+      // TODO: consider a different exception
+      throw new IllegalStateException("Could not connect to " + this.config.getURL(), e);
+    }
+    this.conn = result;
+    return result;
   }
 
   // private final ConcurrentMap<String, PreparedStatement> preparedStatementCache = new
