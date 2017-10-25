@@ -9,23 +9,25 @@ import java.util.Properties;
 import java.util.Set;
 
 public class JDBCConfiguration {
-  
-  private static final String DRIVER = "driver";
-  
-  private static final String URL = "url";
-  
-  private static final String USER = "user";
-  
-  private static final String PASSWORD = "password";
- 
-  private static final List<String> knownProperties = Collections.unmodifiableList(Arrays.asList(DRIVER, URL, USER, PASSWORD));
 
-  private static final List<String> requiredProperties = Collections.unmodifiableList(Arrays.asList(DRIVER, URL));
-  
+  private static final String DRIVER = "driver";
+
+  private static final String URL = "url";
+
+  private static final String USER = "user";
+
+  private static final String PASSWORD = "password";
+
+  private static final List<String> knownProperties =
+      Collections.unmodifiableList(Arrays.asList(DRIVER, URL, USER, PASSWORD));
+
+  private static final List<String> requiredProperties =
+      Collections.unmodifiableList(Arrays.asList(DRIVER, URL));
+
   private final String driver;
 
   private String url;
-  
+
   JDBCConfiguration(Properties configProps) {
     validateKnownProperties(configProps);
     validateRequiredProperties(configProps);
@@ -49,12 +51,13 @@ public class JDBCConfiguration {
       throw new IllegalArgumentException("missing required properties: " + reqKeys);
     }
   }
-  
+
   public String getDriver() {
     return this.driver;
   }
+
   public String getURL() {
     return this.url;
   }
-  
+
 }

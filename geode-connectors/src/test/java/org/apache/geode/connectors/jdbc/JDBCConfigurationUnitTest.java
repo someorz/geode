@@ -55,7 +55,7 @@ public class JDBCConfigurationUnitTest {
     expectedException.expectMessage("missing required properties: [driver]");
     new JDBCConfiguration(props);
   }
-  
+
   @Test
   public void testDriverProperty() {
     Properties props = new Properties();
@@ -64,7 +64,7 @@ public class JDBCConfigurationUnitTest {
     JDBCConfiguration config = new JDBCConfiguration(props);
     assertThat(config.getDriver()).isEqualTo("myDriver");
   }
-  
+
   @Test
   public void testURLProperty() {
     Properties props = new Properties();

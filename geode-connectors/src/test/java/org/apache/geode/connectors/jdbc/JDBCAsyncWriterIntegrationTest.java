@@ -46,7 +46,7 @@ public class JDBCAsyncWriterIntegrationTest {
 
   JDBCAsyncWriter jdbcWriter;
 
-  private String dbName="DerbyDB";
+  private String dbName = "DerbyDB";
 
   private String regionTableName = "employees";
 
@@ -100,7 +100,7 @@ public class JDBCAsyncWriterIntegrationTest {
     employees.put("2", "Emp2");
 
     Awaitility.await().atMost(30, TimeUnit.SECONDS)
-    .until(() -> assertThat(jdbcWriter.getTotalEvents()).isEqualTo(2));
+        .until(() -> assertThat(jdbcWriter.getTotalEvents()).isEqualTo(2));
 
   }
 
@@ -112,15 +112,15 @@ public class JDBCAsyncWriterIntegrationTest {
     employees.put("2", "Emp2");
 
     Awaitility.await().atMost(30, TimeUnit.SECONDS)
-    .until(() -> assertThat(jdbcWriter.getSuccessfulEvents()).isEqualTo(2));
+        .until(() -> assertThat(jdbcWriter.getSuccessfulEvents()).isEqualTo(2));
 
     validateTableRowCount(2);
   }
 
   private Region createRegionWithJDBCAsyncWriter(String regionName) {
     jdbcWriter = new JDBCAsyncWriter();
-    cache.createAsyncEventQueueFactory().setBatchSize(1)
-    .setBatchTimeInterval(1).create("jdbcAsyncQueue", jdbcWriter);
+    cache.createAsyncEventQueueFactory().setBatchSize(1).setBatchTimeInterval(1)
+        .create("jdbcAsyncQueue", jdbcWriter);
 
     RegionFactory rf = cache.createRegionFactory(RegionShortcut.REPLICATE);
     rf.addAsyncEventQueueId("jdbcAsyncQueue");
