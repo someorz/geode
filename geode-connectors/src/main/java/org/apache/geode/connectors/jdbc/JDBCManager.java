@@ -19,6 +19,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -135,8 +136,18 @@ public class JDBCManager {
   private List<ColumnValue> getColumnToValueList(String tableName, Object key, PdxInstance value,
       Operation operation) {
     Set<String> keyColumnNames = getKeyColumnNames(tableName);
-    for (String fieldName : value.getFieldNames()) {
+    List<String> fieldNames = value.getFieldNames();
+    List<ColumnValue> result = new ArrayList<>(fieldNames.size()+1);
+    for (String fieldName : fieldNames) {
       String columnName = mapFieldNameToColumnName(fieldName, tableName);
+      if (columnName == null) {
+        // this field is not mapped to a column
+        if (isFieldExcluded(fieldName)) {
+          continue;
+        } else {
+          throw new IllegalStateException("No column on table " + tableName + " was found for the field named " + fieldName);
+        }
+      }
       boolean isKey = keyColumnNames.contains(columnName);
 
       if (operation.isDestroy() && !isKey) {
@@ -145,8 +156,15 @@ public class JDBCManager {
       // TODO: what if isKey and columnValue needs to be the key object instead of from PdxInstance?
       Object columnValue = value.getField(fieldName);
       ColumnValue cv = new ColumnValue(isKey, fieldName, columnValue);
+      // TODO: any need to order the items in the list?
+      result.add(cv);
     }
-    return null;
+    return result;
+  }
+
+  private boolean isFieldExcluded(String fieldName) {
+    // TODO Auto-generated method stub
+    return false;
   }
 
   private String mapFieldNameToColumnName(String fieldName, String tableName) {
@@ -163,7 +181,4 @@ public class JDBCManager {
     // TODO: check config for mapping
     return region.getName();
   }
-
-
-
 }
