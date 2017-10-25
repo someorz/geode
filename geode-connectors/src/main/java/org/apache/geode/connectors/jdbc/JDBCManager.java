@@ -143,24 +143,22 @@ public class JDBCManager {
       if (result != null && !result.isClosed()) {
         return result;
       }
-    }
-    catch (SQLException ignore) {
+    } catch (SQLException ignore) {
       // If isClosed throws fall through and connect again
     }
 
     if (result == null) {
       try {
         Class.forName(this.config.getDriver());
-      }
-      catch (ClassNotFoundException e) {
+      } catch (ClassNotFoundException e) {
         // TODO: consider a different exception
-        throw new IllegalStateException("Driver class " + this.config.getDriver() + " not found", e);
+        throw new IllegalStateException("Driver class " + this.config.getDriver() + " not found",
+            e);
       }
     }
     try {
       result = DriverManager.getConnection(this.config.getURL());
-    }
-    catch (SQLException e) {
+    } catch (SQLException e) {
       // TODO: consider a different exception
       throw new IllegalStateException("Could not connect to " + this.config.getURL(), e);
     }
