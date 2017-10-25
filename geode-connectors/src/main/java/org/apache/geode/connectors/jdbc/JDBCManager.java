@@ -20,6 +20,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,13 +78,26 @@ public class JDBCManager {
   public void write(Region region, Operation operation, Object key, PdxInstance value) {
     String tableName = getTableName(region);
     List<ColumnValue> columnList = getColumnToValueList(tableName, key, value, operation);
-    String query = getQueryString(tableName, columnList, operation);
-    PreparedStatement statement = getQueryStatement(columnList, query);
+    PreparedStatement pstmt = getQueryStatement(columnList, tableName, operation);
     try {
-      statement.execute(query);
+      int idx = 0;
+      for (ColumnValue cv : columnList) {
+        idx++;
+        pstmt.setObject(idx, cv.getValue());
+      }
+      pstmt.execute();
     } catch (SQLException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
+    } finally {
+      clearStatement(pstmt);
+    }
+  }
+
+  private void clearStatement(PreparedStatement ps) {
+    try {
+      ps.clearParameters();
+    } catch (SQLException ignore) {
     }
   }
 
@@ -133,47 +147,54 @@ public class JDBCManager {
     return null; // NYI
   }
 
-  private final ConcurrentMap<String, PreparedStatement> preparedStatementCache =
-      new ConcurrentHashMap<>();
+  // private final ConcurrentMap<String, PreparedStatement> preparedStatementCache = new
+  // ConcurrentHashMap<>();
 
-  private PreparedStatement getQueryStatement(List<ColumnValue> columnList, String query) {
-    return preparedStatementCache.computeIfAbsent(query, k -> {
-      Connection con = getConnection();
-      try {
-        return con.prepareStatement(k);
-      } catch (SQLException e) {
-        throw new IllegalStateException("TODO handle exception", e);
-      }
-    });
+  private PreparedStatement getQueryStatement(List<ColumnValue> columnList, String tableName,
+      Operation operation) {
+    // ConcurrentMap<String, PreparedStatement> cache = getPreparedStatementCache(operation);
+    // return cache.computeIfAbsent(query, k -> {
+    // String query = getQueryString(tableName, columnList, operation);
+    // Connection con = getConnection();
+    // try {
+    // return con.prepareStatement(k);
+    // } catch (SQLException e) {
+    // throw new IllegalStateException("TODO handle exception", e);
+    // }
+    // });
+    String query = getQueryString(tableName, columnList, operation);
+    Connection con = getConnection();
+    try {
+      return con.prepareStatement(query);
+    } catch (SQLException e) {
+      throw new IllegalStateException("TODO handle exception", e);
+    }
   }
 
   private List<ColumnValue> getColumnToValueList(String tableName, Object key, PdxInstance value,
       Operation operation) {
-    Set<String> keyColumnNames = getKeyColumnNames(tableName);
+    String keyColumnName = getKeyColumnName(tableName);
+    ColumnValue keyCV = new ColumnValue(true, keyColumnName, key);
+    if (operation.isDestroy()) {
+      return Collections.singletonList(keyCV);
+    }
+
     List<String> fieldNames = value.getFieldNames();
     List<ColumnValue> result = new ArrayList<>(fieldNames.size() + 1);
     for (String fieldName : fieldNames) {
-      String columnName = mapFieldNameToColumnName(fieldName, tableName);
-      if (columnName == null) {
-        // this field is not mapped to a column
-        if (isFieldExcluded(fieldName)) {
-          continue;
-        } else {
-          throw new IllegalStateException(
-              "No column on table " + tableName + " was found for the field named " + fieldName);
-        }
-      }
-      boolean isKey = keyColumnNames.contains(columnName);
-
-      if (operation.isDestroy() && !isKey) {
+      if (isFieldExcluded(fieldName)) {
         continue;
       }
-      // TODO: what if isKey and columnValue needs to be the key object instead of from PdxInstance?
+      String columnName = mapFieldNameToColumnName(fieldName, tableName);
+      if (columnName.equals(keyColumnName)) {
+        continue;
+      }
       Object columnValue = value.getField(fieldName);
-      ColumnValue cv = new ColumnValue(isKey, fieldName, columnValue);
+      ColumnValue cv = new ColumnValue(false, fieldName, columnValue);
       // TODO: any need to order the items in the list?
       result.add(cv);
     }
+    result.add(keyCV);
     return result;
   }
 
@@ -187,7 +208,7 @@ public class JDBCManager {
     return fieldName;
   }
 
-  private Set<String> getKeyColumnNames(String tableName) {
+  private String getKeyColumnName(String tableName) {
     // TODO Auto-generated method stub
     return null;
   }
