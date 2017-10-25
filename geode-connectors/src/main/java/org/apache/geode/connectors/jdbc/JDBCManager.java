@@ -128,13 +128,14 @@ public class JDBCManager {
     columnValues.append(")");
     return columnNames.append(columnValues).toString();
   }
-  
+
   private Connection getConnection() {
     return null; // NYI
   }
 
-  private final ConcurrentMap<String, PreparedStatement> preparedStatementCache = new ConcurrentHashMap<>();
-  
+  private final ConcurrentMap<String, PreparedStatement> preparedStatementCache =
+      new ConcurrentHashMap<>();
+
   private PreparedStatement getQueryStatement(List<ColumnValue> columnList, String query) {
     return preparedStatementCache.computeIfAbsent(query, k -> {
       Connection con = getConnection();
@@ -145,12 +146,12 @@ public class JDBCManager {
       }
     });
   }
-  
+
   private List<ColumnValue> getColumnToValueList(String tableName, Object key, PdxInstance value,
       Operation operation) {
     Set<String> keyColumnNames = getKeyColumnNames(tableName);
     List<String> fieldNames = value.getFieldNames();
-    List<ColumnValue> result = new ArrayList<>(fieldNames.size()+1);
+    List<ColumnValue> result = new ArrayList<>(fieldNames.size() + 1);
     for (String fieldName : fieldNames) {
       String columnName = mapFieldNameToColumnName(fieldName, tableName);
       if (columnName == null) {
@@ -158,7 +159,8 @@ public class JDBCManager {
         if (isFieldExcluded(fieldName)) {
           continue;
         } else {
-          throw new IllegalStateException("No column on table " + tableName + " was found for the field named " + fieldName);
+          throw new IllegalStateException(
+              "No column on table " + tableName + " was found for the field named " + fieldName);
         }
       }
       boolean isKey = keyColumnNames.contains(columnName);
