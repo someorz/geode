@@ -5,8 +5,10 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.geode.cache.Operation;
 import org.apache.geode.cache.Region;
@@ -30,15 +32,34 @@ public class JDBCManager {
     // stmt = conn.createStatement();
   }
 
-  public interface ColumnValue {
-    String getColumnName();
+  public class ColumnValue {
+    
+    final private boolean isKey;
+    final private String columnName;
+    final private Object value;
 
-    Object getValue();
+    public ColumnValue(boolean isKey, String columnName, Object value) {
+      this.isKey = isKey;
+      this.columnName = columnName;
+      this.value = value;
+    }
+    
+    public boolean isKey() {
+      return this.isKey;
+    }
+
+    public String getColumnName() {
+      return this.columnName;
+    }
+    
+    public Object getValue() {
+      return this.value;
+    }
   }
 
   public void write(Region region, Operation operation, Object key, PdxInstance value) {
     String tableName = getTableName(region);
-    List<ColumnValue> columnList = getColumnToValueList(tableName, key, value);
+    List<ColumnValue> columnList = getColumnToValueList(tableName, key, value, operation);
     String query = getQueryString(tableName, columnList, operation);
     Statement statement = getQueryStatement(columnList, query);
     try {
@@ -97,7 +118,29 @@ public class JDBCManager {
     return null;
   }
 
-  private List<ColumnValue> getColumnToValueList(String tableName, Object key, PdxInstance value) {
+  private List<ColumnValue> getColumnToValueList(String tableName, Object key, PdxInstance value, Operation operation) {
+    Set<String> keyColumnNames = getKeyColumnNames(tableName);
+    for (String fieldName: value.getFieldNames()) {
+      String columnName = mapFieldNameToColumnName(fieldName, tableName);
+      boolean isKey = keyColumnNames.contains(columnName);
+      
+      if (operation.isDestroy() && !isKey) {
+        continue;
+      }
+      // TODO: what if isKey and value needs to be the key object?
+      Object columnValue = value.getField(fieldName);
+      ColumnValue cv = new ColumnValue(isKey, fieldName, columnValue);
+    }
+    String[] valueColumnNames = getValueColumnNames(tableName, value);
+    return null;
+  }
+
+  private String mapFieldNameToColumnName(String fieldName, String tableName) {
+    // TODO check config for mapping
+    return fieldName;
+  }
+
+  private Set<String> getKeyColumnNames(String tableName) {
     // TODO Auto-generated method stub
     return null;
   }
