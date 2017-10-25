@@ -21,6 +21,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.*;
@@ -31,6 +32,7 @@ import org.apache.geode.cache.Region;
 import org.apache.geode.cache.RegionFactory;
 import org.apache.geode.cache.RegionShortcut;
 import org.apache.geode.cache.asyncqueue.AsyncEventQueue;
+import org.apache.geode.connectors.jdbc.JDBCAsyncWriter;
 import org.apache.geode.internal.cache.GemFireCacheImpl;
 import org.apache.geode.test.junit.categories.IntegrationTest;
 import org.awaitility.Awaitility;
@@ -49,6 +51,10 @@ public class JDBCAsyncWriterIntegrationTest {
   private String dbName = "DerbyDB";
 
   private String regionTableName = "employees";
+
+  private String driver = "org.apache.derby.jdbc.EmbeddedDriver";
+
+  private String connectionURL = "jdbc:derby:memory:" + dbName + ";create=true";
 
   @Before
   public void setup() throws Exception {
@@ -73,8 +79,6 @@ public class JDBCAsyncWriterIntegrationTest {
   }
 
   public void setupDB() throws Exception {
-    String driver = "org.apache.derby.jdbc.EmbeddedDriver";
-    String connectionURL = "jdbc:derby:memory:" + dbName + ";create=true";
     Class.forName(driver);
     conn = DriverManager.getConnection(connectionURL);
     stmt = conn.createStatement();
@@ -92,10 +96,17 @@ public class JDBCAsyncWriterIntegrationTest {
       conn.close();
     }
   }
+  
+  private Properties getRequiredProperties() {
+    Properties props = new Properties();
+    props.setProperty("driver", this.driver);
+    props.setProperty("url", this.connectionURL);
+    return props;
+  }
 
   @Test
   public void canInstallJDBCAsyncWriterOnRegion() {
-    Region employees = createRegionWithJDBCAsyncWriter("employees");
+    Region employees = createRegionWithJDBCAsyncWriter("employees", getRequiredProperties());
     employees.put("1", "Emp1");
     employees.put("2", "Emp2");
 
@@ -106,7 +117,7 @@ public class JDBCAsyncWriterIntegrationTest {
 
   @Test
   public void jdbcAsyncWriterCanWriteToDatabase() throws Exception {
-    Region employees = createRegionWithJDBCAsyncWriter("employees");
+    Region employees = createRegionWithJDBCAsyncWriter("employees", getRequiredProperties());
 
     employees.put("1", "Emp1");
     employees.put("2", "Emp2");
@@ -117,8 +128,9 @@ public class JDBCAsyncWriterIntegrationTest {
     validateTableRowCount(2);
   }
 
-  private Region createRegionWithJDBCAsyncWriter(String regionName) {
+  private Region createRegionWithJDBCAsyncWriter(String regionName, Properties props) {
     jdbcWriter = new JDBCAsyncWriter();
+    jdbcWriter.init(props);
     cache.createAsyncEventQueueFactory().setBatchSize(1).setBatchTimeInterval(1)
         .create("jdbcAsyncQueue", jdbcWriter);
 

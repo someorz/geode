@@ -53,6 +53,7 @@ public class JDBCAsyncWriter implements AsyncEventListener {
         successfulEvents += 1;
       } catch (RuntimeException ex) {
         // TODO: need to log exceptions here
+        throw ex;
       }
     }
     return true;

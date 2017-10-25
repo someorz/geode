@@ -38,8 +38,6 @@ public class JDBCManager {
 
   private Connection conn;
 
-  private Statement stmt;
-
   JDBCManager(JDBCConfiguration config) {
     this.config = config;
   }
