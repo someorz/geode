@@ -107,13 +107,29 @@ public class JDBCManager {
   }
 
   private String getDestroyQueryString(String tableName, List<ColumnValue> columnList) {
-    // TODO Auto-generated method stub
-    return null;
+    assert columnList.size() == 1;
+    ColumnValue keyCV = columnList.get(0);
+    StringBuilder query =
+        new StringBuilder("DELETE FROM " + tableName + " WHERE " + keyCV.getColumnName() + " = ?");
+    return query.toString();
   }
 
   private String getUpdateQueryString(String tableName, List<ColumnValue> columnList) {
-    // TODO Auto-generated method stub
-    return null;
+    StringBuilder query = new StringBuilder("UPDATE " + tableName + " SET ");
+    int idx = 0;
+    for (ColumnValue cv : columnList) {
+      if (cv.isKey()) {
+        query.append(" WHERE ");
+      } else {
+        idx++;
+        if (idx > 1) {
+          query.append(", ");
+        }
+      }
+      query.append(cv.getColumnName());
+      query.append(" = ?");
+    }
+    return query.toString();
   }
 
   private String getInsertQueryString(String tableName, List<ColumnValue> columnList) {
@@ -180,6 +196,7 @@ public class JDBCManager {
     // }
     // });
     String query = getQueryString(tableName, columnList, operation);
+    System.out.println("query=" + query);
     Connection con = getConnection();
     try {
       return con.prepareStatement(query);

@@ -65,7 +65,8 @@ public class JDBCAsyncWriterIntegrationTest {
       // ignore
     }
     if (null == cache) {
-      cache = (GemFireCacheImpl) new CacheFactory().set(MCAST_PORT, "0").create();
+      cache = (GemFireCacheImpl) new CacheFactory().setPdxReadSerialized(true).set(MCAST_PORT, "0")
+          .create();
     }
     setupDB();
   }
@@ -122,7 +123,7 @@ public class JDBCAsyncWriterIntegrationTest {
   }
 
   @Test
-  public void jdbcAsyncWriterCanWriteToDatabase() throws Exception {
+  public void jdbcAsyncWriterCanInsertIntoDatabase() throws Exception {
     Region employees = createRegionWithJDBCAsyncWriter(regionTableName, getRequiredProperties());
     PdxInstance pdx1 = cache.createPdxInstanceFactory("Employee").writeString("name", "Emp1")
         .writeInt("age", 55).writeInt("id", 3).create();
@@ -133,6 +134,52 @@ public class JDBCAsyncWriterIntegrationTest {
 
     Awaitility.await().atMost(30, TimeUnit.SECONDS)
         .until(() -> assertThat(jdbcWriter.getSuccessfulEvents()).isEqualTo(2));
+
+    validateTableRowCount(2);
+    printTable();
+  }
+
+  @Test
+  public void jdbcAsyncWriterCanDestroyFromDatabase() throws Exception {
+    Region employees = createRegionWithJDBCAsyncWriter(regionTableName, getRequiredProperties());
+    PdxInstance pdx1 = cache.createPdxInstanceFactory("Employee").writeString("name", "Emp1")
+        .writeInt("age", 55).create();
+    PdxInstance pdx2 = cache.createPdxInstanceFactory("Employee").writeString("name", "Emp2")
+        .writeInt("age", 21).create();
+    employees.put("1", pdx1);
+    employees.put("2", pdx2);
+
+    Awaitility.await().atMost(30, TimeUnit.SECONDS)
+        .until(() -> assertThat(jdbcWriter.getSuccessfulEvents()).isEqualTo(2));
+
+    employees.destroy("1");
+
+    Awaitility.await().atMost(30, TimeUnit.SECONDS)
+        .until(() -> assertThat(jdbcWriter.getSuccessfulEvents()).isEqualTo(3));
+
+    validateTableRowCount(1);
+    printTable();
+  }
+
+  @Test
+  public void jdbcAsyncWriterCanUpdateDatabase() throws Exception {
+    Region employees = createRegionWithJDBCAsyncWriter(regionTableName, getRequiredProperties());
+    PdxInstance pdx1 = cache.createPdxInstanceFactory("Employee").writeString("name", "Emp1")
+        .writeInt("age", 55).create();
+    PdxInstance pdx2 = cache.createPdxInstanceFactory("Employee").writeString("name", "Emp2")
+        .writeInt("age", 21).create();
+    employees.put("1", pdx1);
+    employees.put("2", pdx2);
+
+    Awaitility.await().atMost(30, TimeUnit.SECONDS)
+        .until(() -> assertThat(jdbcWriter.getSuccessfulEvents()).isEqualTo(2));
+
+    PdxInstance pdx3 = cache.createPdxInstanceFactory("Employee").writeString("name", "Emp1")
+        .writeInt("age", 72).create();
+    employees.put("1", pdx3);
+
+    Awaitility.await().atMost(30, TimeUnit.SECONDS)
+        .until(() -> assertThat(jdbcWriter.getSuccessfulEvents()).isEqualTo(3));
 
     validateTableRowCount(2);
     printTable();
