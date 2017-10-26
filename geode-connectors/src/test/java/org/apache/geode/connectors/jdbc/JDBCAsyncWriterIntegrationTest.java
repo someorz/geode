@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -31,9 +32,9 @@ import org.apache.geode.cache.CacheFactory;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.RegionFactory;
 import org.apache.geode.cache.RegionShortcut;
-import org.apache.geode.cache.asyncqueue.AsyncEventQueue;
 import org.apache.geode.connectors.jdbc.JDBCAsyncWriter;
 import org.apache.geode.internal.cache.GemFireCacheImpl;
+import org.apache.geode.pdx.PdxInstance;
 import org.apache.geode.test.junit.categories.IntegrationTest;
 import org.awaitility.Awaitility;
 
@@ -82,7 +83,8 @@ public class JDBCAsyncWriterIntegrationTest {
     Class.forName(driver);
     conn = DriverManager.getConnection(connectionURL);
     stmt = conn.createStatement();
-    stmt.execute("Create Table " + regionTableName + " (id varchar(10), name varchar(10))");
+    stmt.execute(
+        "Create Table " + regionTableName + " (id varchar(10), name varchar(10), age int)");
   }
 
   public void closeDB() throws Exception {
@@ -96,7 +98,7 @@ public class JDBCAsyncWriterIntegrationTest {
       conn.close();
     }
   }
-  
+
   private Properties getRequiredProperties() {
     Properties props = new Properties();
     props.setProperty("driver", this.driver);
@@ -106,9 +108,13 @@ public class JDBCAsyncWriterIntegrationTest {
 
   @Test
   public void canInstallJDBCAsyncWriterOnRegion() {
-    Region employees = createRegionWithJDBCAsyncWriter("employees", getRequiredProperties());
-    employees.put("1", "Emp1");
-    employees.put("2", "Emp2");
+    Region employees = createRegionWithJDBCAsyncWriter(regionTableName, getRequiredProperties());
+    PdxInstance pdx1 = cache.createPdxInstanceFactory("Employee").writeString("name", "Emp1")
+        .writeInt("age", 55).create();
+    PdxInstance pdx2 = cache.createPdxInstanceFactory("Employee").writeString("name", "Emp2")
+        .writeInt("age", 21).create();
+    employees.put("1", pdx1);
+    employees.put("2", pdx2);
 
     Awaitility.await().atMost(30, TimeUnit.SECONDS)
         .until(() -> assertThat(jdbcWriter.getTotalEvents()).isEqualTo(2));
@@ -117,15 +123,19 @@ public class JDBCAsyncWriterIntegrationTest {
 
   @Test
   public void jdbcAsyncWriterCanWriteToDatabase() throws Exception {
-    Region employees = createRegionWithJDBCAsyncWriter("employees", getRequiredProperties());
-
-    employees.put("1", "Emp1");
-    employees.put("2", "Emp2");
+    Region employees = createRegionWithJDBCAsyncWriter(regionTableName, getRequiredProperties());
+    PdxInstance pdx1 = cache.createPdxInstanceFactory("Employee").writeString("name", "Emp1")
+        .writeInt("age", 55).writeInt("id", 3).create();
+    PdxInstance pdx2 = cache.createPdxInstanceFactory("Employee").writeString("name", "Emp2")
+        .writeInt("age", 21).create();
+    employees.put("1", pdx1);
+    employees.put("2", pdx2);
 
     Awaitility.await().atMost(30, TimeUnit.SECONDS)
         .until(() -> assertThat(jdbcWriter.getSuccessfulEvents()).isEqualTo(2));
 
     validateTableRowCount(2);
+    printTable();
   }
 
   private Region createRegionWithJDBCAsyncWriter(String regionName, Properties props) {
@@ -144,6 +154,21 @@ public class JDBCAsyncWriterIntegrationTest {
     rs.next();
     int size = rs.getInt(1);
     assertThat(size).isEqualTo(expected);
+  }
+
+  private void printTable() throws Exception {
+    ResultSet rs = stmt.executeQuery("select * from " + regionTableName);
+    ResultSetMetaData rsmd = rs.getMetaData();
+    int columnsNumber = rsmd.getColumnCount();
+    while (rs.next()) {
+      for (int i = 1; i <= columnsNumber; i++) {
+        if (i > 1)
+          System.out.print(",  ");
+        String columnValue = rs.getString(i);
+        System.out.print(rsmd.getColumnName(i) + ": " + columnValue);
+      }
+      System.out.println("");
+    }
   }
 
 }

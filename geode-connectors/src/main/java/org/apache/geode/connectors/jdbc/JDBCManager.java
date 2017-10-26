@@ -226,8 +226,7 @@ public class JDBCManager {
   }
 
   private String getKeyColumnName(String tableName) {
-    // TODO Auto-generated method stub
-    return null;
+    return "id"; // TODO: do not hard code this!
   }
 
   private String getTableName(Region region) {

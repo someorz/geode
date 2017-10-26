@@ -19,6 +19,7 @@ import java.util.Properties;
 
 import org.apache.geode.cache.asyncqueue.AsyncEvent;
 import org.apache.geode.cache.asyncqueue.AsyncEventListener;
+import org.apache.geode.cache.query.internal.DefaultQuery;
 import org.apache.geode.pdx.PdxInstance;
 
 /*
@@ -43,18 +44,23 @@ public class JDBCAsyncWriter implements AsyncEventListener {
   @Override
   public boolean processEvents(List<AsyncEvent> events) {
     totalEvents += events.size();
-    // TODO: set threadLocal to force PDXInstance
-    for (AsyncEvent event : events) {
-      // TODO: in some cases getDeserializedValue may return non-PdxInstance.
-      // In that case need to serialize and deserialize.
-      try {
-        PdxInstance value = (PdxInstance) event.getDeserializedValue();
-        this.manager.write(event.getRegion(), event.getOperation(), event.getKey(), value);
-        successfulEvents += 1;
-      } catch (RuntimeException ex) {
-        // TODO: need to log exceptions here
-        throw ex;
+    // TODO: have a better API that lets you do this
+    DefaultQuery.setPdxReadSerialized(true);
+    try {
+      for (AsyncEvent event : events) {
+        // TODO: in some cases getDeserializedValue may return non-PdxInstance.
+        // In that case need to serialize and deserialize.
+        try {
+          PdxInstance value = (PdxInstance) event.getDeserializedValue();
+          this.manager.write(event.getRegion(), event.getOperation(), event.getKey(), value);
+          successfulEvents += 1;
+        } catch (RuntimeException ex) {
+          // TODO: need to log exceptions here
+          throw ex;
+        }
       }
+    } finally {
+      DefaultQuery.setPdxReadSerialized(false);
     }
     return true;
   }
