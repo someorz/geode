@@ -84,8 +84,8 @@ public class JDBCAsyncWriterIntegrationTest {
     Class.forName(driver);
     conn = DriverManager.getConnection(connectionURL);
     stmt = conn.createStatement();
-    stmt.execute(
-        "Create Table " + regionTableName + " (id varchar(10), name varchar(10), age int)");
+    stmt.execute("Create Table " + regionTableName
+        + " (id varchar(10) primary key, name varchar(10), age int)");
   }
 
   public void closeDB() throws Exception {
